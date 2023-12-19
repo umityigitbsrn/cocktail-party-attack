@@ -1,0 +1,28 @@
+[
+  {
+    "layer": "linear",
+    "in_features": 784,
+    "out_features": 128,
+    "bias": true
+  },
+  {
+    "layer": "activation",
+    "type": "relu"
+  },
+  {
+    "layer": "linear",
+    "in_features": 128,
+    "out_features": 64,
+    "bias": true
+  },
+  {
+    "layer": "activation",
+    "type": "relu"
+  },
+  {
+    "layer": "linear",
+    "in_features": 64,
+    "out_features": 10,
+    "bias": true
+  }
+]
