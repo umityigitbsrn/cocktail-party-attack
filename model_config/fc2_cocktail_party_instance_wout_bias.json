@@ -3,7 +3,7 @@
     "layer": "linear",
     "in_features": 3072,
     "out_features": 256,
-    "bias": true
+    "bias": false
   },
   {
     "layer": "activation",
@@ -13,6 +13,6 @@
     "layer": "linear",
     "in_features": 256,
     "out_features": 10,
-    "bias": true
+    "bias": false
   }
 ]

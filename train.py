@@ -104,5 +104,11 @@ def train_all(model_conf_path, optimizer_type, lr, criterion_type, num_epochs, t
 
     if len(val_loss_arr) == 0:
         val_loss_arr = None
-
+    if save_path:
+        checkpoint = torch.load(save_path)
+        checkpoint['train_loss'] = train_loss_arr
+        checkpoint['val_loss'] = val_loss_arr
+        checkpoint['val_accuracy'] = val_accuracy_arr
+        torch.save(checkpoint, save_path)
+        print('Training log is saved to {}'.format(save_path))
     return train_loss_arr, val_loss_arr, val_accuracy_arr
