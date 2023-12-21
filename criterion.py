@@ -55,7 +55,10 @@ class ReconstructImageFromFCLoss(nn.Module):
         self.total_variance_loss_param = total_variance_loss_param
 
     def forward(self, unmixing_matrix, gradient):
-        out_score = self.non_gaussianity_loss(unmixing_matrix @ gradient)
-        out_score += self.total_variance_loss(unmixing_matrix @ gradient) * self.total_variance_loss_param
-        out_score += self.mutual_independence_loss(unmixing_matrix) * self.mutual_independence_loss_param
-        return out_score
+        non_gaussianity_score = self.non_gaussianity_loss(unmixing_matrix @ gradient)
+        out_score = non_gaussianity_score
+        total_variance_score = self.total_variance_loss(unmixing_matrix @ gradient)
+        out_score += total_variance_score * self.total_variance_loss_param
+        mutual_independence_score = self.mutual_independence_loss(unmixing_matrix) * self.mutual_independence_loss_param
+        out_score += mutual_independence_score * self.mutual_independence_loss_param
+        return out_score, non_gaussianity_score, total_variance_score, mutual_independence_score
