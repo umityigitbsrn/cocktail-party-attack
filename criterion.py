@@ -55,10 +55,11 @@ class ReconstructImageFromFCLoss(nn.Module):
         self.total_variance_loss_param = total_variance_loss_param
 
     def forward(self, unmixing_matrix, gradient):
-        non_gaussianity_score = self.non_gaussianity_loss(unmixing_matrix @ gradient)
-        out_score = non_gaussianity_score
-        total_variance_score = self.total_variance_loss(unmixing_matrix @ gradient)
-        out_score += total_variance_score * self.total_variance_loss_param
-        mutual_independence_score = self.mutual_independence_loss(unmixing_matrix) * self.mutual_independence_loss_param
-        out_score += mutual_independence_score * self.mutual_independence_loss_param
+        estimated_img = torch.clamp(unmixing_matrix @ gradient, min=-1., max=1.)
+        non_gaussianity_score = self.non_gaussianity_loss(estimated_img)
+        total_variance_score = self.total_variance_loss(estimated_img)
+        mutual_independence_score = self.mutual_independence_loss(unmixing_matrix)
+        out_score = (self.non_gaussianity_loss(estimated_img) +
+                     self.total_variance_loss(estimated_img) * self.total_variance_loss_param +
+                     self.mutual_independence_loss(unmixing_matrix) * self.mutual_independence_loss_param)
         return out_score, non_gaussianity_score, total_variance_score, mutual_independence_score
