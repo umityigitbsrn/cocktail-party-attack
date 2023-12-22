@@ -20,36 +20,36 @@ def load_cifar10_dataloaders(path, batch_size, transform):
     return train_loader, test_loader
 
 
-def whitening_transformation(gradient_matrix):
-    # centering data - zero mean
-    transformed_matrix = torch.complex(gradient_matrix - torch.mean(gradient_matrix, dim=0), torch.zeros(gradient_matrix.size()))
+def _demean(input_matrix):
+    # Note that this is the same as J = (I - 11^T/n)
+    ones = np.ones((input_matrix.shape[0], 1))
+    J = np.identity(input_matrix.shape[0]) - ((np.matmul(ones, ones.T)) / input_matrix.shape[0])
+    return np.matmul(J, input_matrix)
 
-    # finding cov matrix
-    covariance_matrix = transformed_matrix.T
-    covariance_matrix = torch.cov(covariance_matrix)
-    assert not ((torch.any(torch.isnan(covariance_matrix)).item()) or (torch.any(torch.isinf(covariance_matrix)).item())), \
-        'There are NaN or Inf values in covariance matrix array'
 
-    # eigen decomposition
-    eigvals, eigvectors = torch.linalg.eig(covariance_matrix)
-    # eigvals, eigvectors = eigvals.real, eigvectors.real
-    # eigvals[eigvals < 0] = 1e-10
-    # assert not ((torch.any(torch.isnan(eigvals)).item()) or (torch.any(torch.isinf(eigvals)).item())), \
-    #     'There are NaN or Inf values in eigenvalue array'
-    sqrt_eigvals = torch.sqrt(eigvals)
-    # assert not ((torch.any(torch.isnan(sqrt_eigvals)).item()) or (torch.any(torch.isinf(sqrt_eigvals)).item())), 'There are NaN or Inf values in sqrt eigenvalue array'
-    inverse_sqrt_eigvals = (1 / sqrt_eigvals)
-    inverse_sqrt_eigvals[torch.isnan(inverse_sqrt_eigvals.real)] = 0.+0.j
-    # assert not ((torch.any(torch.isnan(inverse_sqrt_eigvals)).item()) or (torch.any(torch.isinf(inverse_sqrt_eigvals)).item())), 'There are NaN or Inf values in inverse sqrt eigenvalue array'
+# whitening implementation taken from https://courses.cs.washington.edu/courses/cse446/19au/section8_SVD.html
+class WhiteningTransformation(object):
+    def __init__(self):
+        self.U = None
+        self.S = None
+        self.V = None
 
-    # pca whitening
-    pca_whitening = (torch.diag(inverse_sqrt_eigvals) @ eigvectors.T @ transformed_matrix.T).T
-    # pca_whitening = torch.nan_to_num(pca_whitening)
-    # assert not ((torch.any(torch.isnan(pca_whitening)).item()) or (torch.any(torch.isinf(pca_whitening)).item())), 'There are NaN or Inf values in pca whitened array'
+    def project(self, input_matrix):
+        # Note that this is the same as V
+        return np.matmul(input_matrix, self.V.T)
 
-    # zca_whitening
-    zca_whitening = (eigvectors @ torch.diag(inverse_sqrt_eigvals) @ eigvectors.T @ transformed_matrix.T).T
-    # zca_whitening = torch.nan_to_num(zca_whitening)
-    # assert not ((torch.any(torch.isnan(zca_whitening)).item()) or (torch.any(torch.isinf(zca_whitening)).item())), 'There are NaN or Inf values in zca whitened array'
+    def scale(self, input_matrix):
+        # Note that this is the same as S^{-1}
+        return np.multiply(input_matrix, (1 / self.S))
 
-    return pca_whitening, zca_whitening
+    def unrotate(self, input_matrix):
+        # Note that this is the same as V^{T}
+        return np.matmul(input_matrix, self.V)
+
+    def transform(self, input_matrix):
+        demean_matrix = _demean(input_matrix)
+        self.U, self.S, self.V = np.linalg.svd(demean_matrix)
+        projected_matrix = self.project(demean_matrix)
+        scaled_matrix = self.scale(projected_matrix)
+        unrotated_matrix = self.unrotate(scaled_matrix)
+        return unrotated_matrix
