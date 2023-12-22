@@ -163,3 +163,4 @@ cython_debug/
 **/**umit_tmp**
 **/data/
 **/checkpoints/
+**/deprecated/
