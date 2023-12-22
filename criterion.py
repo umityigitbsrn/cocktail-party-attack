@@ -38,7 +38,7 @@ class MutualIndependenceLoss(nn.Module):
 
     def forward(self, inputs):
         out_score = pairwise_cosine_similarity(inputs)
-        out_score = torch.exp(self.t_param * torch.abs(out_score)) - torch.eye(inputs.size(0))
+        out_score = torch.exp(self.t_param * torch.abs(out_score)) - torch.eye(inputs.size(0)).to(inputs.device)
         out_score = torch.mean(out_score)
         return out_score
 
