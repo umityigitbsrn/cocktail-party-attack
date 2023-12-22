@@ -38,7 +38,8 @@ class MutualIndependenceLoss(nn.Module):
 
     def forward(self, inputs):
         out_score = pairwise_cosine_similarity(inputs)
-        out_score = torch.exp(self.t_param * torch.abs(out_score)) - torch.eye(inputs.size(0)).to(inputs.device)
+        out_score = out_score[~torch.eye(inputs.shape[0]).to(bool)]
+        out_score = torch.exp(self.t_param * torch.abs(out_score))
         out_score = torch.mean(out_score)
         return out_score
 
@@ -55,7 +56,8 @@ class ReconstructImageFromFCLoss(nn.Module):
         self.total_variance_loss_param = total_variance_loss_param
 
     def forward(self, unmixing_matrix, gradient):
-        estimated_img = torch.clamp(unmixing_matrix @ gradient, min=-1., max=1.)
+        # estimated_img = torch.clamp(unmixing_matrix @ gradient, min=-1., max=1.)
+        estimated_img = unmixing_matrix @ gradient
         non_gaussianity_score = self.non_gaussianity_loss(estimated_img)
         total_variance_score = self.total_variance_loss(estimated_img)
         mutual_independence_score = self.mutual_independence_loss(unmixing_matrix)
