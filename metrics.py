@@ -16,11 +16,11 @@ def psnr(img_batch, ref_batch, batched=False, factor=1.0):
 
 
 def psnr_matching(img_batch, ref_batch):
-    pairwise_psnr = torch.zeros((img_batch.shape[0], ref_batch.shape[1]))
+    pairwise_psnr = torch.zeros((img_batch.shape[0], ref_batch.shape[0]))
     for row_idx, img_in in enumerate(img_batch):
         for col_idx, img_ref in enumerate(ref_batch):
             score = psnr(img_in, img_ref)
-            pairwise_psnr[row_idx, col_idx] = score
+            pairwise_psnr[row_idx, col_idx] = score.item()
 
     mask = torch.zeros((img_batch.shape[0], ref_batch.shape[0])).to(bool)
     match = []
