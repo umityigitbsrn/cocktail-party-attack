@@ -1,7 +1,8 @@
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Sampler
 from torchvision.datasets import MNIST, CIFAR10
-import torch
 import numpy as np
+import matplotlib.colors as colors
+import torch
 
 
 def load_mnist_dataloaders(path, batch_size, transform):
@@ -12,11 +13,16 @@ def load_mnist_dataloaders(path, batch_size, transform):
     return train_loader, test_loader
 
 
-def load_cifar10_dataloaders(path, batch_size, transform):
+def load_cifar10_dataloaders(path, batch_size, transform, batch_sampler=False):
     train_dataset = CIFAR10(path, train=True, download=True, transform=transform)
     test_dataset = CIFAR10(path, train=False, download=True, transform=transform)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+    if not batch_sampler:
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+    else:
+        high_hsv_sampler = HighHSVBatchSampler(test_dataset, batch_size)
+        test_loader = DataLoader(test_dataset, batch_sampler=high_hsv_sampler)
+
     return train_loader, test_loader
 
 
@@ -53,3 +59,25 @@ class WhiteningTransformation(object):
         scaled_matrix = self.scale(projected_matrix)
         unrotated_matrix = self.unrotate(scaled_matrix)
         return unrotated_matrix
+
+
+class HighHSVBatchSampler(Sampler):
+    def __init__(self, data, batch_size, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.batch_size = batch_size
+        self.data = data
+
+        sv_arr = []
+        for elem, _ in self.data:
+            rgb = np.asarray(elem).transpose(1, 2, 0)
+            sv = colors.rgb_to_hsv(rgb)[:, :, 1:]
+            sv = np.mean(sv)
+            sv_arr.append(sv)
+        self.batch_idxs = torch.chunk(reversed(torch.argsort(torch.tensor(sv_arr))), len(self))
+
+    def __len__(self):
+        return (len(self.data) + self.batch_size - 1) // self.batch_size
+
+    def __iter__(self):
+        for batch in self.batch_idxs:
+            yield batch.tolist()
