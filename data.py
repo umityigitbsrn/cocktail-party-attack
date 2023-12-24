@@ -73,7 +73,24 @@ class HighHSVBatchSampler(Sampler):
             sv = colors.rgb_to_hsv(rgb)[:, :, 1:]
             sv = np.mean(sv)
             sv_arr.append(sv)
-        self.batch_idxs = torch.chunk(reversed(torch.argsort(torch.tensor(sv_arr))), len(self))
+        hsv_sorted_img_idxs = reversed(torch.argsort(torch.tensor(sv_arr)))
+        hsv_sorted_img_chunked_idxs = list(torch.chunk(hsv_sorted_img_idxs, batch_size))
+        hsv_sorted_img_chunked_len_arr = [len(x) for x in hsv_sorted_img_chunked_idxs]
+        hsv_sorted_img_chunked_pointer_arr = [0 for _ in hsv_sorted_img_chunked_idxs]
+        pointer = 0
+        idxs = []
+        done = [False for _ in hsv_sorted_img_chunked_idxs]
+        while not all(done):
+            if hsv_sorted_img_chunked_pointer_arr[pointer] == hsv_sorted_img_chunked_len_arr[pointer] - 1:
+                done[pointer] = True
+                pointer = (pointer + 1) % len(hsv_sorted_img_chunked_idxs)
+                continue
+
+            idxs.append(hsv_sorted_img_chunked_idxs[pointer][hsv_sorted_img_chunked_pointer_arr[pointer]])
+            hsv_sorted_img_chunked_pointer_arr[pointer] += 1
+            pointer = (pointer + 1) % len(hsv_sorted_img_chunked_idxs)
+
+        self.batch_idxs = torch.chunk(torch.tensor(idxs), len(self))
 
     def __len__(self):
         return (len(self.data) + self.batch_size - 1) // self.batch_size

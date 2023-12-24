@@ -11,6 +11,8 @@ def psnr(img_batch, ref_batch, batched=False, factor=1.0):
     for img_in, img_ref in zip(img_batch, ref_batch):
         mse = ((img_in - img_ref) ** 2).mean()
         if mse > 0 and torch.isfinite(mse):
+            # TODO: A better implementation of PSNR exists, the correct way to calculate PSNR is different
+            #  this code is taken from the Geiping's paper
             psnr_arr.append(10 * torch.log10(factor ** 2 / mse))
     return np.asarray(psnr_arr).mean()
 
