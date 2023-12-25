@@ -61,6 +61,29 @@ class WhiteningTransformation(object):
         return unrotated_matrix
 
 
+# WARNING: This implementation is not for this project, while mentioning whitening in the paper this whitening is not
+#  meant
+class WhiteningTransformationV2(object):
+    def __init__(self):
+        self.U = None
+        self.S = None
+        self.V = None
+
+    def rotate(self, input_matrix):
+        return np.dot(input_matrix, self.U)
+
+    def whiten(self, input_matrix):
+        return input_matrix / np.sqrt(self.S + 1e-5)
+
+    def transform(self, input_matrix):
+        demean_matrix = _demean(input_matrix)
+        cov = np.dot(demean_matrix.T, demean_matrix) / demean_matrix.shape[0]
+        self.U, self.S, self.V = np.linalg.svd(cov)
+        rotated = self.rotate(demean_matrix)
+        whitened = self.whiten(rotated)
+        return whitened
+
+
 class HighHSVBatchSampler(Sampler):
     def __init__(self, data, batch_size, *args, **kwargs):
         super().__init__(*args, **kwargs)
