@@ -1,5 +1,5 @@
 from torch.utils.data import DataLoader, Sampler
-from torchvision.datasets import MNIST, CIFAR10
+from torchvision.datasets import MNIST, CIFAR10, CIFAR100
 import numpy as np
 import matplotlib.colors as colors
 import torch
@@ -16,6 +16,19 @@ def load_mnist_dataloaders(path, batch_size, transform):
 def load_cifar10_dataloaders(path, batch_size, transform, batch_sampler=False):
     train_dataset = CIFAR10(path, train=True, download=True, transform=transform)
     test_dataset = CIFAR10(path, train=False, download=True, transform=transform)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    if not batch_sampler:
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+    else:
+        high_hsv_sampler = HighHSVBatchSampler(test_dataset, batch_size)
+        test_loader = DataLoader(test_dataset, batch_sampler=high_hsv_sampler)
+
+    return train_loader, test_loader
+
+
+def load_cifar100_dataloaders(path, batch_size, transform, batch_sampler=False):
+    train_dataset = CIFAR100(path, train=True, download=True, transform=transform)
+    test_dataset = CIFAR100(path, train=False, download=True, transform=transform)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     if not batch_sampler:
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
