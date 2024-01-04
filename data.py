@@ -3,6 +3,10 @@ from torchvision.datasets import MNIST, CIFAR10, CIFAR100
 import numpy as np
 import matplotlib.colors as colors
 import torch
+from datasets import load_dataset, Dataset, concatenate_datasets
+from torchvision import transforms
+import os
+import shutil
 
 
 def load_mnist_dataloaders(path, batch_size, transform):
@@ -29,6 +33,48 @@ def load_cifar10_dataloaders(path, batch_size, transform, batch_sampler=False):
 def load_cifar100_dataloaders(path, batch_size, transform, batch_sampler=False):
     train_dataset = CIFAR100(path, train=True, download=True, transform=transform)
     test_dataset = CIFAR100(path, train=False, download=True, transform=transform)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    if not batch_sampler:
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)
+    else:
+        high_hsv_sampler = HighHSVBatchSampler(test_dataset, batch_size)
+        test_loader = DataLoader(test_dataset, batch_sampler=high_hsv_sampler)
+
+    return train_loader, test_loader
+
+
+def _to_tensor(pil_img):
+    to_tensor_transform = transforms.ToTensor()
+    to_rgb = transforms.Lambda(lambda x: x.repeat(3, 1, 1) if x.size(0) == 1 else x)
+    tensor_img = to_tensor_transform(pil_img['image'])
+    tensor_img = to_rgb(tensor_img)
+    pil_img['image'] = tensor_img
+    return pil_img
+
+
+def create_tiny_imagenet_dataset():
+    cache_dir = os.path.join('~/.cache/huggingface/datasets', 'tiny-imagenet')
+    if not os.path.exists('./data/tiny-imagenet'):
+        dataset = load_dataset('zh-plus/tiny-imagenet', split='train', cache_dir=cache_dir,
+                               download_mode='force_redownload')
+        updated_dataset = dataset.map(_to_tensor)
+        updated_dataset.save_to_disk('./data/tiny-imagenet/train')
+
+        dataset = load_dataset('zh-plus/tiny-imagenet', split='valid', cache_dir=cache_dir,
+                               download_mode='force_redownload')
+        updated_dataset = dataset.map(_to_tensor)
+        updated_dataset.save_to_disk('./data/tiny-imagenet/valid')
+        print('Dataset is created')
+    else:
+        print('The dataset is already installed')
+
+
+def load_tiny_imagenet_dataloaders(batch_size, batch_sampler=False):
+    create_tiny_imagenet_dataset()
+    arrow_files = [os.path.join('./data/tiny-imagenet/train', arrow_file) for arrow_file in
+                   os.listdir('./data/tiny-imagenet/train') if '.arrow' in arrow_file]
+    train_dataset = concatenate_datasets([Dataset.from_file(arrow_file) for arrow_file in arrow_files]).with_format('torch')
+    test_dataset = Dataset.from_file('./data/tiny-imagenet/valid/data-00000-of-00001.arrow').with_format('torch')
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     if not batch_sampler:
         test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=True)

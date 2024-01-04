@@ -1,0 +1,8 @@
+[
+  {
+    "layer": "linear",
+    "in_features": 12288,
+    "out_features": 200,
+    "bias": false
+  }
+]

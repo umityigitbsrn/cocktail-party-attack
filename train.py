@@ -7,7 +7,7 @@ import os
 
 
 def train_one_epoch(model, optimizer, criterion, train_loader, val_loader, device, save_path, save_interval, linearize,
-                    curr_epoch):
+                    curr_epoch, fetch_from_dict=False):
     prev_val_accuracy = 0
     if save_path:
         if os.path.exists(save_path):
@@ -22,7 +22,12 @@ def train_one_epoch(model, optimizer, criterion, train_loader, val_loader, devic
     running_val_loss = []
     running_val_accuracy = []
 
-    for iter_idx, (images, labels) in enumerate(train_loader):
+    for iter_idx, data in enumerate(train_loader):
+        if fetch_from_dict:
+            images, labels = data['image'], data['label']
+        else:
+            images, labels = data
+
         images = images.to(device)
         if linearize:
             images = images.reshape(images.shape[0], -1)
@@ -40,7 +45,11 @@ def train_one_epoch(model, optimizer, criterion, train_loader, val_loader, devic
                 curr_accuracy = 0
                 curr_loss = 0
                 with torch.no_grad():
-                    for val_images, val_labels in val_loader:
+                    for val_data in val_loader:
+                        if fetch_from_dict:
+                            val_images, val_labels = val_data['image'], val_data['label']
+                        else:
+                            val_images, val_labels = val_data
                         val_images = val_images.to(device)
                         if linearize:
                             val_images = val_images.reshape(val_images.shape[0], -1)
@@ -77,7 +86,7 @@ def train_one_epoch(model, optimizer, criterion, train_loader, val_loader, devic
 
 
 def train_all(model_conf_path, optimizer_type, lr, criterion_type, num_epochs, train_loader, val_loader=None,
-              device=None, save_path=None, save_interval=200, linearize=False):
+              device=None, save_path=None, save_interval=200, linearize=False, fetch_from_dict=False):
     # init model
     if device is None:
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -92,7 +101,7 @@ def train_all(model_conf_path, optimizer_type, lr, criterion_type, num_epochs, t
         model, optimizer, train_loss, val_loss, val_accuracy = train_one_epoch(model, optimizer, criterion,
                                                                                train_loader, val_loader, device,
                                                                                save_path, save_interval, linearize,
-                                                                               epoch)
+                                                                               epoch, fetch_from_dict=fetch_from_dict)
         train_loss_arr.append(train_loss)
         if val_loss is not None:
             val_loss_arr.append(val_loss)
