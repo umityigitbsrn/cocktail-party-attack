@@ -8,4 +8,3 @@ By using the below command you can create a conda environment to use this reposi
 ```commandline
 conda env create -f environment.yml
 ```
-just a quick test
