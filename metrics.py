@@ -7,12 +7,12 @@ from torchmetrics.functional.image.lpips import _NoTrainLpips, _lpips_update
 import matplotlib.colors as colors
 
 
-def psnr_matching(estimated_img_batch, reference_img_batch):
+def psnr_matching(estimated_img_batch, reference_img_batch, height=32, width=32):
     pairwise_psnr = torch.empty((estimated_img_batch.shape[0], reference_img_batch.shape[0]))
     pos_estimation = torch.ones((estimated_img_batch.shape[0], reference_img_batch.shape[0])).to(bool)
     for estimated_img_idx, estimated_img in enumerate(estimated_img_batch):
-        positive_estimation = torch.tensor(colors.Normalize()(np.asarray(estimated_img).reshape(3, 32, 32)))
-        negative_estimation = torch.tensor(colors.Normalize()(np.asarray(-estimated_img).reshape(3, 32, 32)))
+        positive_estimation = torch.tensor(colors.Normalize()(np.asarray(estimated_img).reshape(3, height, width)))
+        negative_estimation = torch.tensor(colors.Normalize()(np.asarray(-estimated_img).reshape(3, height, width)))
         for reference_img_idx, reference_img in enumerate(reference_img_batch):
             positive_psnr = peak_signal_noise_ratio(
                 torch.unsqueeze(positive_estimation, 0),
@@ -48,8 +48,8 @@ def psnr_matching(estimated_img_batch, reference_img_batch):
     return match, is_pos, (mean_psnr / estimated_img_batch.shape[0])
 
 
-def psnr(estimated_img_batch, reference_img_batch, return_matches=True):
-    match, is_pos, mean_psnr = psnr_matching(estimated_img_batch, reference_img_batch)
+def psnr(estimated_img_batch, reference_img_batch, return_matches=True, height=32, width=32):
+    match, is_pos, mean_psnr = psnr_matching(estimated_img_batch, reference_img_batch, height=height, width=width)
     if return_matches:
         return match, is_pos, mean_psnr
     else:
@@ -87,15 +87,15 @@ def learned_perceptual_image_patch_similarity_wout_reduction(
     return loss
 
 
-def lpips_matching(estimated_img_batch, reference_img_batch, verbose=False):
+def lpips_matching(estimated_img_batch, reference_img_batch, verbose=False, height=32, width=32):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     # device = 'cpu'
 
     pairwise_lpips = torch.empty((estimated_img_batch.shape[0], reference_img_batch.shape[0]))
     pos_estimation = torch.ones((estimated_img_batch.shape[0], reference_img_batch.shape[0])).to(bool)
     for estimated_img_idx, estimated_img in enumerate(estimated_img_batch):
-        positive_estimation = torch.tensor(colors.Normalize()(np.asarray(estimated_img).reshape(3, 32, 32)))
-        negative_estimation = torch.tensor(colors.Normalize()(np.asarray(-estimated_img).reshape(3, 32, 32)))
+        positive_estimation = torch.tensor(colors.Normalize()(np.asarray(estimated_img).reshape(3, height, width)))
+        negative_estimation = torch.tensor(colors.Normalize()(np.asarray(-estimated_img).reshape(3, height, width)))
         for reference_img_idx, reference_img in enumerate(reference_img_batch):
             positive_lpips = learned_perceptual_image_patch_similarity(
                 torch.unsqueeze(positive_estimation, 0).to(device),
@@ -147,17 +147,17 @@ def lpips_matching(estimated_img_batch, reference_img_batch, verbose=False):
     return match, is_pos, (mean_lpips / estimated_img_batch.shape[0])
 
 
-def lpips_matching_gpu(estimated_img_batch, reference_img_batch):
+def lpips_matching_gpu(estimated_img_batch, reference_img_batch, height=32, width=32):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     # finding [0, 1] normalized positive and negative images
-    positive_estimation = torch.empty((estimated_img_batch.shape[0], 3, 32, 32))
-    negative_estimation = torch.empty((estimated_img_batch.shape[0], 3, 32, 32))
+    positive_estimation = torch.empty((estimated_img_batch.shape[0], 3, height, width))
+    negative_estimation = torch.empty((estimated_img_batch.shape[0], 3, height, width))
     for estimated_img_idx, estimated_img in enumerate(estimated_img_batch):
         positive_estimation[estimated_img_idx] = torch.tensor(colors.Normalize()(
-            np.asarray(estimated_img).reshape(3, 32, 32)))
+            np.asarray(estimated_img).reshape(3, height, width)))
         negative_estimation[estimated_img_idx] = torch.tensor(colors.Normalize()(
-            np.asarray(-estimated_img).reshape(3, 32, 32)))
+            np.asarray(-estimated_img).reshape(3, height, width)))
 
     # tiling reference imgs
     rep_reference_img_batch = torch.tile(reference_img_batch, (reference_img_batch.shape[0], 1, 1, 1))
@@ -206,16 +206,16 @@ def lpips_matching_gpu(estimated_img_batch, reference_img_batch):
     return match, is_pos, (mean_lpips / estimated_img_batch.shape[0])
 
 
-def lpips(estimated_img_batch, reference_img_batch, return_matches=True, verbose=False):
-    match, is_pos, mean_lpips = lpips_matching(estimated_img_batch, reference_img_batch, verbose=verbose)
+def lpips(estimated_img_batch, reference_img_batch, return_matches=True, verbose=False, height=32, width=32):
+    match, is_pos, mean_lpips = lpips_matching(estimated_img_batch, reference_img_batch, verbose=verbose, height=height, width=width)
     if return_matches:
         return match, is_pos, mean_lpips
     else:
         return is_pos, mean_lpips
 
 
-def lpips_gpu(estimated_img_batch, reference_img_batch, return_matches=True):
-    match, is_pos, mean_lpips = lpips_matching_gpu(estimated_img_batch, reference_img_batch)
+def lpips_gpu(estimated_img_batch, reference_img_batch, return_matches=True, height=32, width=32):
+    match, is_pos, mean_lpips = lpips_matching_gpu(estimated_img_batch, reference_img_batch, height=height, width=width)
     if return_matches:
         return match, is_pos, mean_lpips
     else:
