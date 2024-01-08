@@ -220,3 +220,40 @@ def lpips_gpu(estimated_img_batch, reference_img_batch, return_matches=True, hei
         return match, is_pos, mean_lpips
     else:
         return is_pos, mean_lpips
+    
+def lpips_matching_specific_image_gpu(estimated_img_batch, specific_img, height=32, width=32):
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+    # finding [0, 1] normalized positive and negative images
+    positive_estimation = torch.empty((estimated_img_batch.shape[0], 3, height, width))
+    negative_estimation = torch.empty((estimated_img_batch.shape[0], 3, height, width))
+    for estimated_img_idx, estimated_img in enumerate(estimated_img_batch):
+        positive_estimation[estimated_img_idx] = torch.tensor(colors.Normalize()(
+            np.asarray(estimated_img).reshape(3, height, width)))
+        negative_estimation[estimated_img_idx] = torch.tensor(colors.Normalize()(
+            np.asarray(-estimated_img).reshape(3, height, width)))
+    
+    # stacking the reference image to craete an lpips batch
+    reference_img_batch = torch.stack([specific_img for _ in range(estimated_img_batch.shape[0])], dim=0)
+
+    # negative pairwise lpips
+    positive_lpips = learned_perceptual_image_patch_similarity_wout_reduction(
+        positive_estimation.to(device),
+        reference_img_batch.to(device),
+        normalize=True,
+    ).detach().to('cpu')
+
+    # negative pairwise lpips
+    negative_lpips = learned_perceptual_image_patch_similarity_wout_reduction(
+        negative_estimation.to(device),
+        reference_img_batch.to(device),
+        normalize=True,
+    ).detach().to('cpu')
+
+    pos_neg_lpips = torch.stack([positive_lpips, negative_lpips], dim=-1)
+    lpips_argmin = torch.argmin(pos_neg_lpips)
+    lpips_argmin_row, lpips_argmin_col = lpips_argmin // pos_neg_lpips.shape[1], lpips_argmin % pos_neg_lpips.shape[1]
+    min_lpips_value = pos_neg_lpips[lpips_argmin_row, lpips_argmin_col]
+    pos_estimation = (lpips_argmin_col == 0)
+    best_estimation_id = lpips_argmin_row
+    return best_estimation_id, pos_estimation, min_lpips_value
