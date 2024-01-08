@@ -254,6 +254,6 @@ def lpips_matching_specific_image_gpu(estimated_img_batch, specific_img, height=
     lpips_argmin = torch.argmin(pos_neg_lpips)
     lpips_argmin_row, lpips_argmin_col = lpips_argmin // pos_neg_lpips.shape[1], lpips_argmin % pos_neg_lpips.shape[1]
     min_lpips_value = pos_neg_lpips[lpips_argmin_row, lpips_argmin_col]
-    pos_estimation = (lpips_argmin_col == 0)
+    pos_estimation = (lpips_argmin_col.item() == 0)
     best_estimation_id = lpips_argmin_row
-    return best_estimation_id, pos_estimation, min_lpips_value
+    return best_estimation_id.item(), pos_estimation, min_lpips_value.item()
