@@ -41,7 +41,7 @@ def cocktail_party_attack(model_config, checkpoint_path, data_type, data_path, b
                           total_variance_loss_param, mutual_independence_loss_param,
                           height=32, width=32, random_seed=2024, device_number=0, return_metrics=True,
                           return_matches=True, return_specific_with_id=None, verbose=True, plot_shape=None,
-                          save_results=None, save_json=False, save_figure=False):
+                          save_results=None, save_json=False, save_figure=False, plot_verbose=True):
     # load to model
     device = 'cuda:{}'.format(device_number) if torch.cuda.is_available() else 'cpu'
     model = Network(model_config)
@@ -195,7 +195,7 @@ def cocktail_party_attack(model_config, checkpoint_path, data_type, data_path, b
                 fig, axes = plt.subplots(*plot_shape)
 
                 for match, ax in zip(lpips_match, axes.flatten()):
-                    if match[0].item() == best_estimation_id:
+                    if return_specific_with_id is not None and match[0].item() == best_estimation_id:
                         ax.spines['bottom'].set_color('red')
                         ax.spines['top'].set_color('red')
                         ax.spines['right'].set_color('red')
@@ -215,12 +215,15 @@ def cocktail_party_attack(model_config, checkpoint_path, data_type, data_path, b
                     plt.savefig(figure_path, dpi=500)
                     if verbose:
                         print('The estimated images are saved under {}'.format(figure_path))
-                plt.show()
+                if plot_verbose:
+                    plt.show()
+                else:
+                    plt.clf()
 
                 fig, axes = plt.subplots(*plot_shape)
 
                 for match, ax in zip(lpips_match, axes.flatten()):
-                    if match[1].item() == return_specific_with_id:
+                    if return_specific_with_id is not None and match[1].item() == return_specific_with_id:
                         ax.spines['bottom'].set_color('red')
                         ax.spines['top'].set_color('red')
                         ax.spines['right'].set_color('red')
@@ -239,7 +242,40 @@ def cocktail_party_attack(model_config, checkpoint_path, data_type, data_path, b
                     plt.savefig(figure_path, dpi=500)
                     if verbose:
                         print('The reference images are saved under {}'.format(figure_path))
+                if plot_verbose:
+                    plt.show()
+                else:
+                    plt.clf()
+
+        if return_specific_with_id is not None:
+            fig, axes = plt.subplots(1, 2)
+            print_estimate = True
+            for ax in axes.flatten():
+                ax.axis('off')
+                if print_estimate:
+                    estimate = estimated_img_batch[best_estimation_id]
+                    estimate_coeff = 1 if lpips_is_positive[match[0].item()] else -1
+                    img = colors.Normalize()(
+                        np.asarray(estimate_coeff * estimate).reshape(3, height, width).transpose(1, 2, 0))
+                    ax.imshow(img)
+                    print_estimate = False
+                else:
+                    estimate = selected_val_batch_data[return_specific_with_id]
+                    img = transforms.ToPILImage()(estimate.reshape(3, height, width))
+                    img = np.asarray(img)
+                    ax.imshow(img)
+
+            if save_figure:
+                figure_path = os.path.join(save_results,
+                                           'target_img_{}_estimation_{}.png'.format(return_specific_with_id,
+                                                                                    best_estimation_id))
+                plt.savefig(figure_path, dpi=500)
+                if verbose:
+                    print('The estimated images are saved under {}'.format(figure_path))
+            if plot_verbose:
                 plt.show()
+            else:
+                plt.clf()
 
     new_dict = copy.deepcopy(result_dict)
     new_dict = _turn_tensors_to_list(new_dict)
