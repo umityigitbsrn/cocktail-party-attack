@@ -28,7 +28,7 @@ def maximize_psnr(model_config, checkpoint_path, data_type, data_path, batch_siz
 
     study = optuna.create_study(direction='maximize')
     study.optimize(objective, n_trials=num_of_trials)
-
+    
 
 def minimize_lpips(model_config, checkpoint_path, data_type, data_path, batch_size, num_of_trials, logger=None, **kwargs):
     def objective(trial):
