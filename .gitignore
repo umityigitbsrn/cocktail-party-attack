@@ -166,3 +166,4 @@ cython_debug/
 **/deprecated/
 **/attack_results/
 **/hyperparameter_optimization_log/
+**/nohup**
