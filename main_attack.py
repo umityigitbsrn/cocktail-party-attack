@@ -15,7 +15,14 @@ if __name__ == "__main__":
     parse.add_argument('-w', '--width', type=int, default=argparse.SUPPRESS)
     parse.add_argument('-rs', '--random_seed', type=int, default=argparse.SUPPRESS)
     parse.add_argument('-dn', '--device_number', type=int, default=argparse.SUPPRESS)
-    parse.add_argument('-ti', '--target_id', type=int, default=argparse.SUPPRESS)
+    parse.add_argument('-rm', '--return_metrics', type=bool, default=argparse.SUPPRESS)
+    parse.add_argument('-rma', '--return_matches', type=bool, default=argparse.SUPPRESS)
+    parse.add_argument('-rswi', '--return_specific_with_id', type=int, default=argparse.SUPPRESS)
+    parse.add_argument('-ps', '--plot_shape', type=tuple, default=argparse.SUPPRESS)
+    parse.add_argument('-sr', '--save_results', type=str, default=argparse.SUPPRESS)
+    parse.add_argument('-sj', '--save_json', type=bool, default=argparse.SUPPRESS)
+    parse.add_argument('-sf', '--save_figure', type=bool, default=argparse.SUPPRESS)
+    parse.add_argument('-pv', '--plot_verbose', type=bool, default=argparse.SUPPRESS)
 
     args = parse.parse_args()
 

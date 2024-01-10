@@ -1,3 +1,5 @@
+import os.path
+
 import optuna
 import logging
 
@@ -18,6 +20,9 @@ def maximize_psnr(model_config, checkpoint_path, data_type, data_path, batch_siz
             return result_dict
 
     if logger is not None:
+        if not os.path.exists(os.path.split(logger)[0]):
+            os.makedirs(os.path.split(logger)[0])
+
         logging_logger = logging.getLogger()
 
         logging_logger.setLevel(logging.INFO)  # Setup the root logging_logger.
@@ -45,6 +50,9 @@ def minimize_lpips(model_config, checkpoint_path, data_type, data_path, batch_si
             return result_dict
     
     if logger is not None:
+        if not os.path.exists(os.path.split(logger)[0]):
+            os.makedirs(os.path.split(logger)[0])
+
         logging_logger = logging.getLogger()
 
         logging_logger.setLevel(logging.INFO)  # Setup the root logging_logger.
@@ -73,6 +81,9 @@ def minimize_lpips_for_specific_image_with_id(model_config, checkpoint_path, dat
             return result_dict
 
     if logger is not None:
+        if not os.path.exists(os.path.split(logger)[0]):
+            os.makedirs(os.path.split(logger)[0])
+
         logging_logger = logging.getLogger()
 
         logging_logger.setLevel(logging.INFO)  # Setup the root logging_logger.
