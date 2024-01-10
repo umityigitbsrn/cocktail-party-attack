@@ -1,0 +1,12 @@
+python main_hyperparameter_optimization.py -hot lpips_specific \
+                                           -mc ./model_config/fc2_cocktail_party_tiny_imagenet_instance.json \
+                                           -cp ./checkpoints/010424_fc2_cocktail_party_tiny_imagenet_pretraining_wout_bias_wout_normalization.pth \
+                                           -dt tiny-imagenet \
+                                           -dp ./data \
+                                           -bs 16 \
+                                           -not 1 \
+                                           -ti 0 \
+                                           -l ./hyperparameter_optimization_log/010924_ho_fc2_tiny_imagenet_bs_16_ti_0.log \
+                                           -he 64 \
+                                           -w 64 \
+                                           -dn 0
