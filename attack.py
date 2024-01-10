@@ -248,34 +248,35 @@ def cocktail_party_attack(model_config, checkpoint_path, data_type, data_path, b
                     plt.clf()
 
         if return_specific_with_id is not None:
-            fig, axes = plt.subplots(1, 2)
-            print_estimate = True
-            for ax in axes.flatten():
-                ax.axis('off')
-                if print_estimate:
-                    estimate = estimated_img_batch[best_estimation_id]
-                    estimate_coeff = 1 if lpips_is_positive[match[0].item()] else -1
-                    img = colors.Normalize()(
-                        np.asarray(estimate_coeff * estimate).reshape(3, height, width).transpose(1, 2, 0))
-                    ax.imshow(img)
-                    print_estimate = False
-                else:
-                    estimate = selected_val_batch_data[return_specific_with_id]
-                    img = transforms.ToPILImage()(estimate.reshape(3, height, width))
-                    img = np.asarray(img)
-                    ax.imshow(img)
+            if plot_shape is not None:
+                fig, axes = plt.subplots(1, 2)
+                print_estimate = True
+                for ax in axes.flatten():
+                    ax.axis('off')
+                    if print_estimate:
+                        estimate = estimated_img_batch[best_estimation_id]
+                        estimate_coeff = 1 if lpips_is_positive[match[0].item()] else -1
+                        img = colors.Normalize()(
+                            np.asarray(estimate_coeff * estimate).reshape(3, height, width).transpose(1, 2, 0))
+                        ax.imshow(img)
+                        print_estimate = False
+                    else:
+                        estimate = selected_val_batch_data[return_specific_with_id]
+                        img = transforms.ToPILImage()(estimate.reshape(3, height, width))
+                        img = np.asarray(img)
+                        ax.imshow(img)
 
-            if save_figure:
-                figure_path = os.path.join(save_results,
-                                           'target_img_{}_estimation_{}.png'.format(return_specific_with_id,
-                                                                                    best_estimation_id))
-                plt.savefig(figure_path, dpi=500)
-                if verbose:
-                    print('The estimated images are saved under {}'.format(figure_path))
-            if plot_verbose:
-                plt.show()
-            else:
-                plt.clf()
+                if save_figure:
+                    figure_path = os.path.join(save_results,
+                                            'target_img_{}_estimation_{}.png'.format(return_specific_with_id,
+                                                                                        best_estimation_id))
+                    plt.savefig(figure_path, dpi=500)
+                    if verbose:
+                        print('The estimated images are saved under {}'.format(figure_path))
+                if plot_verbose:
+                    plt.show()
+                else:
+                    plt.clf()
 
     new_dict = copy.deepcopy(result_dict)
     new_dict = _turn_tensors_to_list(new_dict)
