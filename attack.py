@@ -255,7 +255,7 @@ def cocktail_party_attack(model_config, checkpoint_path, data_type, data_path, b
                     ax.axis('off')
                     if print_estimate:
                         estimate = estimated_img_batch[best_estimation_id]
-                        estimate_coeff = 1 if lpips_is_positive[match[0].item()] else -1
+                        estimate_coeff = 1 if lpips_is_positive[pos_estimation] else -1
                         img = colors.Normalize()(
                             np.asarray(estimate_coeff * estimate).reshape(3, height, width).transpose(1, 2, 0))
                         ax.imshow(img)
