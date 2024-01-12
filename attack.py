@@ -41,13 +41,15 @@ def cocktail_party_attack(model_config, checkpoint_path, data_type, data_path, b
                           total_variance_loss_param, mutual_independence_loss_param,
                           height=32, width=32, random_seed=2024, device_number=0, return_metrics=True,
                           return_matches=True, return_specific_with_id=None, verbose=True, plot_shape=None,
-                          save_results=None, save_json=False, save_figure=False, plot_verbose=True):
+                          save_results=None, save_json=False, save_figure=False, plot_verbose=True, 
+                          save_estimations_and_references=False):
     # load to model
     device = 'cuda:{}'.format(device_number) if torch.cuda.is_available() else 'cpu'
     model = Network(model_config)
     checkpoint = torch.load(checkpoint_path)
     model.load_state_dict(checkpoint['state_dict'])
     model = model.to(device)
+    result_dict = {}
 
     # get val loader
     transform = transforms.Compose([
@@ -82,7 +84,8 @@ def cocktail_party_attack(model_config, checkpoint_path, data_type, data_path, b
         selected_val_batch_data, selected_val_batch_label = data_dict['image'], data_dict['label']
     else:
         selected_val_batch_data, selected_val_batch_label = next(iter(val_dataloader))
-    result_dict = {'reference_img_batch': selected_val_batch_data.detach().to('cpu')}
+    if save_estimations_and_references:
+        result_dict = {'reference_img_batch': selected_val_batch_data.detach().to('cpu')}
     selected_val_batch_data = selected_val_batch_data.to(device)
     selected_val_batch_label = selected_val_batch_label.to(device)
 
@@ -137,8 +140,8 @@ def cocktail_party_attack(model_config, checkpoint_path, data_type, data_path, b
     unmixing_matrix = unmixing_matrix.detach().to('cpu')
     whitened_gradient = whitened_gradient.detach().to('cpu')
     estimated_img_batch = unmixing_matrix @ whitened_gradient
-
-    result_dict['estimated_img_batch'] = estimated_img_batch
+    if save_estimations_and_references:
+        result_dict['estimated_img_batch'] = estimated_img_batch
 
     if verbose:
         print('############# ATTACK IS FINISHED #############')

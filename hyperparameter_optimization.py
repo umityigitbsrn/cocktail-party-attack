@@ -94,3 +94,5 @@ def minimize_lpips_for_specific_image_with_id(model_config, checkpoint_path, dat
 
     study = optuna.create_study(direction='minimize')
     study.optimize(objective, n_trials=num_of_trials)
+
+    return study
