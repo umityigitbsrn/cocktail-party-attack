@@ -6,10 +6,10 @@ checkpoint_path =  './checkpoints/010424_fc2_cocktail_party_tiny_imagenet_pretra
 data_type = 'tiny-imagenet'
 data_path = './data'
 batch_size = 32
-num_of_trials = 2
+num_of_trials = 200
 target_image_arr = list(range(8, 12))
 height, width = 64, 64
-device = 0
+device = 2
 logger = './hyperparameter_optimization_log/011124_ho_fc2_tiny_imagenet_bs_32_target_{}.log'
 
 for target_id in target_image_arr:
