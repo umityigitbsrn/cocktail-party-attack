@@ -7,9 +7,9 @@ data_type = 'tiny-imagenet'
 data_path = './data'
 batch_size = 32
 num_of_trials = 200
-target_image_arr = list(range(12, 16))
+target_image_arr = list(range(16, 20))
 height, width = 64, 64
-device = 3
+device = 0
 logger = './hyperparameter_optimization_log/011124_ho_fc2_tiny_imagenet_bs_32_target_{}.log'
 
 for target_id in target_image_arr:

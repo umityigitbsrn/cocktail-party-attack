@@ -291,6 +291,8 @@ def cocktail_party_attack(model_config, checkpoint_path, data_type, data_path, b
     estimated_img_batch = _main_cocktail_party_attack(selected_val_batch_data, whitened_gradient,
                                                       t_param, total_variance_loss_param, mutual_independence_loss_param,
                                                       height, width, device, save_estimations_and_references, verbose, result_dict)
+    if estimated_img_batch == LPIPS_MAX:
+        return LPIPS_MAX
     #############################################################
 
     with torch.no_grad():
