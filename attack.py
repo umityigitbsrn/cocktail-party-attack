@@ -3,6 +3,7 @@
 
 import torch
 import torch.nn as nn
+from torch.optim import Adam
 from torchvision import transforms
 import numpy as np
 import matplotlib.pyplot as plt
@@ -138,6 +139,37 @@ def _get_whitened_gradients(model, selected_val_batch_data, selected_val_batch_l
     whitened_gradient = whitened_gradient.to(device)
     return whitened_gradient
 
+def _get_whitened_gradient_differences(model, selected_val_batch_data, selected_val_batch_label, batch_size, device):
+    # receiving gradients
+    optimizer = Adam(model.parameters(), lr=0.001)
+    ## first round gradients
+    optimizer.zero_grad()
+    criterion = nn.CrossEntropyLoss()
+    output = model(selected_val_batch_data.reshape(batch_size, -1))
+    loss = criterion(output, selected_val_batch_label)
+    loss.backward()
+    first_gradient_of_layers = []
+    for param in model.parameters():
+        first_gradient_of_layers.append(param.grad.data.detach().to('cpu'))
+    optimizer.step()
+
+    ## second round gradients
+    optimizer.zero_grad()
+    output = model(selected_val_batch_data.reshape(batch_size, -1))
+    loss = criterion(output, selected_val_batch_label)
+    loss.backward()
+    second_gradient_of_layers = []
+    for param in model.parameters():
+        second_gradient_of_layers.append(param.grad.data.detach().to('cpu'))
+
+    # whitening the first fully connected layer
+    whitening_transform = WhiteningTransformation()
+    grad_difference = first_gradient_of_layers[0].numpy().T - second_gradient_of_layers[0].numpy().T 
+    whitened_gradient = torch.from_numpy(whitening_transform.transform(grad_difference)).to(
+        torch.float32).T
+    whitened_gradient = whitened_gradient.to(device)
+    return whitened_gradient
+
 def _main_cocktail_party_attack(selected_val_batch_data, whitened_gradient,
                                 t_param, total_variance_loss_param, mutual_independence_loss_param,
                                 height, width, device, save_estimations_and_references, verbose, result_dict):
@@ -247,7 +279,7 @@ def _plot_results(estimated_img_batch, selected_val_batch_data,
     """
     lpips_match = result_dict['lpips']['matches']
     lpips_is_positive = result_dict['lpips']['is_positive']
-    best_estimation_id, pos_estimation = result_dict['lpips_with_id']['best_estimation'], result_dict['lpips_with_id']['is_positive'] 
+    best_estimation_id, pos_estimation = None, None 
     if plot_shape is not None:
         fig, axes = plt.subplots(*plot_shape)
 
@@ -305,6 +337,7 @@ def _plot_results(estimated_img_batch, selected_val_batch_data,
             plt.clf()
 
     if return_specific_with_id is not None:
+        best_estimation_id, pos_estimation = result_dict['lpips_with_id']['best_estimation'], result_dict['lpips_with_id']['is_positive']
         if plot_shape is not None:
             fig, axes = plt.subplots(1, 2)
             print_estimate = True
@@ -339,7 +372,7 @@ def cocktail_party_attack(model_config, checkpoint_path, data_type, data_path, b
                           total_variance_loss_param, mutual_independence_loss_param,
                           height=32, width=32, random_seed=2024, device_number=0, return_specific_with_id=None, verbose=True, plot_shape=None,
                           save_results=None, save_json=False, save_figure=False, plot_verbose=True, 
-                          save_estimations_and_references=False):
+                          save_estimations_and_references=False, use_gradient_difference=False):
     """all merged for the main function
 
     Args:
@@ -363,9 +396,11 @@ def cocktail_party_attack(model_config, checkpoint_path, data_type, data_path, b
         save_figure (bool, optional): flag for saving figures. Defaults to False.
         plot_verbose (bool, optional): flag for plotting figures to the console_. Defaults to True.
         save_estimations_and_references (bool, optional): saving estimated and reference image batch. Defaults to False.
+        use_gradient_difference (bool): if true the gradient difference collected from two rounds (hypothetically) and their differences is used, 
+                                        else one round gradient is used
 
     Returns:
-        _type_: _description_
+        dict: resulting dictionary with metric scores
     """
     device = 'cuda:{}'.format(device_number) if torch.cuda.is_available() else 'cpu'
     
@@ -399,7 +434,10 @@ def cocktail_party_attack(model_config, checkpoint_path, data_type, data_path, b
     #####################################################################
         
     ################ GET WHITENED GRADIENTS ######################
-    whitened_gradient = _get_whitened_gradients(model, selected_val_batch_data, selected_val_batch_label, batch_size, device)
+    if use_gradient_difference:
+        whitened_gradient = _get_whitened_gradient_differences(model, selected_val_batch_data, selected_val_batch_label, batch_size, device)        
+    else:
+        whitened_gradient = _get_whitened_gradients(model, selected_val_batch_data, selected_val_batch_label, batch_size, device)
 
     if verbose:
         print('whitened and centered gradient of the first fc layer is received')
@@ -424,11 +462,11 @@ def cocktail_party_attack(model_config, checkpoint_path, data_type, data_path, b
             if not os.path.exists(save_results):
                 os.makedirs(save_results)
 
-            ################ PLOT RESULTS ######################
-            _plot_results(estimated_img_batch, selected_val_batch_data,
-                            plot_shape, return_specific_with_id, height, width,
-                            save_results, save_figure, result_dict, verbose, plot_verbose)
-            ####################################################    
+        ################ PLOT RESULTS ######################
+        _plot_results(estimated_img_batch, selected_val_batch_data,
+                        plot_shape, return_specific_with_id, height, width,
+                        save_results, save_figure, result_dict, verbose, plot_verbose)
+        ####################################################    
         
         new_dict = copy.deepcopy(result_dict)
         new_dict = _turn_tensors_to_list(new_dict)
