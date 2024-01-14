@@ -21,6 +21,14 @@ LPIPS_MAX = 100000000
 
 
 def _turn_tensors_to_list(dict_elem):
+    """all tensor values are casted to list values
+
+    Args:
+        dict_elem (dict): some dict with tensor values
+
+    Returns:
+        dict: resulting dict with all tensor values are turned into lists
+    """
     for key, value in dict_elem.items():
         if isinstance(value, torch.Tensor):
             dict_elem[key] = value.tolist()
@@ -37,6 +45,16 @@ def _turn_tensors_to_list(dict_elem):
     return dict_elem
 
 def _load_pretrained_model(model_config, checkpoint_path, device):
+    """loading the pretrained model
+
+    Args:
+        model_config (str): exact model config path
+        checkpoint_path (str): exact checkpoint path
+        device (str): device information
+
+    Returns:
+        nn.Module (model): the pretrained model 
+    """
     model = Network(model_config)
     checkpoint = torch.load(checkpoint_path)
     model.load_state_dict(checkpoint['state_dict'])
@@ -44,6 +62,23 @@ def _load_pretrained_model(model_config, checkpoint_path, device):
     return model
 
 def _get_reference_image_batch(data_type, data_path, batch_size, transform, device, save_estimations_and_references, result_dict):
+    """getting the reference image batch from dataloader
+
+    Args:
+        data_type (str): data type choice from [tiny-imagenet, cifar100, cifar10, mnist]
+        data_path (str): root folder of data (generally './data')
+        batch_size (int): batch size
+        transform (torchvision.transforms): the transform function to turn image to tensor
+        device (str): device information
+        save_estimations_and_references (bool): flag for whether saving the reference images in the resulting dictionary
+        result_dict (dict): if save_estimations_and_references is true save reference images in the dict
+
+    Raises:
+        Exception: if a non-defined data type is given raise an exception 
+
+    Returns:
+        tuple(torch.Tensor, torch.Tensor): reference data batch and its labels
+    """
     val_dataloader = None
     if data_type == 'mnist':
         _, val_dataloader = load_mnist_dataloaders(data_path, batch_size, transform)
@@ -63,17 +98,29 @@ def _get_reference_image_batch(data_type, data_path, batch_size, transform, devi
     # if tiny imagenet then the data object is a dict therefore to send them to 
     # the GPU it needs to be handled
     if data_type == 'tiny-imagenet':
-        data_dict = next(iter(val_dataloader))
+        data_dict = next(iter(val_dataloader)) # type: ignore
         selected_val_batch_data, selected_val_batch_label = data_dict['image'], data_dict['label']
     else:
-        selected_val_batch_data, selected_val_batch_label = next(iter(val_dataloader))
+        selected_val_batch_data, selected_val_batch_label = next(iter(val_dataloader)) # type: ignore
     if save_estimations_and_references:
-        result_dict['reference_img_batch']: selected_val_batch_data.detach().to('cpu')
+        result_dict['reference_img_batch']: selected_val_batch_data.detach().to('cpu') # type: ignore
     selected_val_batch_data = selected_val_batch_data.to(device)
     selected_val_batch_label = selected_val_batch_label.to(device)
     return selected_val_batch_data, selected_val_batch_label
 
 def _get_whitened_gradients(model, selected_val_batch_data, selected_val_batch_label, batch_size, device):
+    """getting the whitened gradients after observing gradients on validation data
+
+    Args:
+        model (nn.Module): pretrained model
+        selected_val_batch_data (torch.Tensor): reference images
+        selected_val_batch_label (torch.Tensor): reference image labels
+        batch_size (int): batch size
+        device (str): device information
+
+    Returns:
+        torch.Tensor: whitened gradients
+    """
     # receiving gradients
     model.zero_grad()
     criterion = nn.CrossEntropyLoss()
@@ -94,6 +141,24 @@ def _get_whitened_gradients(model, selected_val_batch_data, selected_val_batch_l
 def _main_cocktail_party_attack(selected_val_batch_data, whitened_gradient,
                                 t_param, total_variance_loss_param, mutual_independence_loss_param,
                                 height, width, device, save_estimations_and_references, verbose, result_dict):
+    """cocktail party attack
+
+    Args:
+        selected_val_batch_data (torch.Tensor): reference images
+        whitened_gradient (torch.Tensor): whitened gradients
+        t_param (float): T parameter in the mutual independence loss function
+        total_variance_loss_param (float): total variance loss param
+        mutual_independence_loss_param (float): mutual independence loss param
+        height (int): image height
+        width (int): image width
+        device (str): device information
+        save_estimations_and_references (bool): flag for saving the estimated image in the result dict
+        verbose (bool): flag for verbose
+        result_dict (dict): if save_estimations_and_references is true save estimated image batch in result dict
+
+    Returns:
+        torch.Tensor: estimated image batch
+    """
     if verbose:
         print('############# ATTACK IS STARTED #############')
 
@@ -129,8 +194,19 @@ def _main_cocktail_party_attack(selected_val_batch_data, whitened_gradient,
     return estimated_img_batch
 
 def _get_metrics(estimated_img_batch, selected_val_batch_data, height, width, return_specific_with_id, result_dict, verbose):
-    lpips_match, lpips_is_positive, mean_lpips = lpips_gpu(estimated_img_batch, selected_val_batch_data, height=height, width=width)
-    psnr_match, psnr_is_positive, mean_psnr = psnr(estimated_img_batch, selected_val_batch_data, height=height, width=width)
+    """save metrics in the result dict
+
+    Args:
+        estimated_img_batch (torch.Tensor): estimated image batch
+        selected_val_batch_data (torch.Tensor): reference image batch
+        height (int): image height
+        width (int): image width
+        return_specific_with_id (int, None): if specified individual lpips will also be calculated
+        result_dict (dict): dict to save metric values
+        verbose (bool): flag for verbose
+    """
+    lpips_match, lpips_is_positive, mean_lpips = lpips_gpu(estimated_img_batch, selected_val_batch_data, height=height, width=width) # type: ignore
+    psnr_match, psnr_is_positive, mean_psnr = psnr(estimated_img_batch, selected_val_batch_data, height=height, width=width) # type: ignore
     lpips_key, psnr_key = 'lpips', 'psnr'
     result_dict[lpips_key] = {'matches': lpips_match, 'is_positive': lpips_is_positive, 'mean_lpips': mean_lpips}
     result_dict[psnr_key] = {'matches': psnr_match, 'is_positive': psnr_is_positive, 'mean_psnr': mean_psnr}
@@ -154,6 +230,21 @@ def _plot_results(estimated_img_batch, selected_val_batch_data,
                   plot_shape, return_specific_with_id, height, width,
                   save_results, save_figure, result_dict,
                   verbose, plot_verbose):
+    """plotting images
+
+    Args:
+        estimated_img_batch (torch.Tensor): estimated image batch
+        selected_val_batch_data (torch.Tensor): reference image batch
+        plot_shape (tuple(int, int), None): plot shape for image arrangement, if None not plot whole images
+        return_specific_with_id (int, None): plot specific image constructions, if None not plot them
+        height (int): image height
+        width (int): image width
+        save_results (str): the name of the folder of results
+        save_figure (bool): flag to saving figures
+        result_dict (dict): resulting dict with info of metrics
+        verbose (bool): flag for verbose
+        plot_verbose (bool): flag to plot the images into console
+    """
     lpips_match = result_dict['lpips']['matches']
     lpips_is_positive = result_dict['lpips']['is_positive']
     best_estimation_id, pos_estimation = result_dict['lpips_with_id']['best_estimation'], result_dict['lpips_with_id']['is_positive'] 
@@ -249,6 +340,33 @@ def cocktail_party_attack(model_config, checkpoint_path, data_type, data_path, b
                           height=32, width=32, random_seed=2024, device_number=0, return_specific_with_id=None, verbose=True, plot_shape=None,
                           save_results=None, save_json=False, save_figure=False, plot_verbose=True, 
                           save_estimations_and_references=False):
+    """all merged for the main function
+
+    Args:
+        model_config (str): exact model config path
+        checkpoint_path (str): exact model checkpoint path
+        data_type (str): data type choice from [tiny-imagenet, cifar100, cifar10, mnist]
+        data_path (str): data root folder
+        batch_size (int): batch size
+        t_param (float): t param for mutual independence
+        total_variance_loss_param (float): total variance loss parameter
+        mutual_independence_loss_param (float): mutual independence loss parameter
+        height (int, optional): image height. Defaults to 32.
+        width (int, optional): image width. Defaults to 32.
+        random_seed (int, optional): seed for reproducibility. Defaults to 2024.
+        device_number (int, optional): gpu number. Defaults to 0.
+        return_specific_with_id (int, optional): The target id for specific constructions. Defaults to None.
+        verbose (bool, optional): flag for verbose. Defaults to True.
+        plot_shape (tuple(int, int), optional): image arrangement in plots. Defaults to None.
+        save_results (str, optional): name of the folder in attack_results of the experiment result path. Defaults to None.
+        save_json (bool, optional): flag for saving json. Defaults to False.
+        save_figure (bool, optional): flag for saving figures. Defaults to False.
+        plot_verbose (bool, optional): flag for plotting figures to the console_. Defaults to True.
+        save_estimations_and_references (bool, optional): saving estimated and reference image batch. Defaults to False.
+
+    Returns:
+        _type_: _description_
+    """
     device = 'cuda:{}'.format(device_number) if torch.cuda.is_available() else 'cpu'
     
     ################ LOADING THE PRETRAINED MODEL ######################
@@ -306,17 +424,17 @@ def cocktail_party_attack(model_config, checkpoint_path, data_type, data_path, b
             if not os.path.exists(save_results):
                 os.makedirs(save_results)
 
-        ################ PLOT RESULTS ######################
-                _plot_results(estimated_img_batch, selected_val_batch_data,
-                              plot_shape, return_specific_with_id, height, width,
-                              save_results, save_figure, result_dict, verbose, plot_verbose)
-        ####################################################    
+            ################ PLOT RESULTS ######################
+            _plot_results(estimated_img_batch, selected_val_batch_data,
+                            plot_shape, return_specific_with_id, height, width,
+                            save_results, save_figure, result_dict, verbose, plot_verbose)
+            ####################################################    
         
         new_dict = copy.deepcopy(result_dict)
         new_dict = _turn_tensors_to_list(new_dict)
 
         if save_json:
-            json_path = os.path.join(save_results, 'results.json')
+            json_path = os.path.join(save_results, 'results.json') # type: ignore
             with open(json_path, 'w') as fp:
                 # turning tensors to list
                 json.dump(new_dict, fp, indent=4)
