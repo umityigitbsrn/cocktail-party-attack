@@ -6,7 +6,6 @@ import torch
 from datasets import load_dataset, Dataset, concatenate_datasets
 from torchvision import transforms
 import os
-import shutil
 
 
 def load_mnist_dataloaders(path, batch_size, transform):

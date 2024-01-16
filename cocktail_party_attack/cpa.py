@@ -45,13 +45,6 @@ class CocktailPartyAttack(object):
                                                         use_gradient_difference=self.use_gradient_difference)
 
     def optimize_hyperparameters(self, optimization_type, num_of_trials, logger=None):
-        """_summary_
-
-        Args:
-            optimization_type (_type_): _description_
-            num_of_trials (_type_): _description_
-            logger (_type_, optional): _description_. Defaults to None.
-        """
         if optimization_type == 'psnr':
             self.study = maximize_psnr(self.model_config, self.checkpoint_path, self.data_type, self.data_path, self.batch_size,
                                   num_of_trials, logger=logger, height=self.height, width=self.width, 
