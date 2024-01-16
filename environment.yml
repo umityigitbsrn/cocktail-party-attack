@@ -1,4 +1,4 @@
-name: pytorch-scipy
+name: cocktail-party-attack-env
 channels:
   - pytorch
   - huggingface
