@@ -86,9 +86,9 @@ def learned_perceptual_image_patch_similarity_wout_reduction(
     loss, total = _lpips_update(img1, img2, net, normalize)
     return loss
 
-
-def lpips_matching(estimated_img_batch, reference_img_batch, verbose=False, height=32, width=32):
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+# DEPRECATED
+def lpips_matching(estimated_img_batch, reference_img_batch, device, verbose=False, height=32, width=32):
+    # device = 'cuda' if torch.cuda.is_available() else 'cpu'
     # device = 'cpu'
 
     pairwise_lpips = torch.empty((estimated_img_batch.shape[0], reference_img_batch.shape[0]))
@@ -147,8 +147,8 @@ def lpips_matching(estimated_img_batch, reference_img_batch, verbose=False, heig
     return match, is_pos, (mean_lpips / estimated_img_batch.shape[0])
 
 
-def lpips_matching_gpu(estimated_img_batch, reference_img_batch, height=32, width=32):
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+def lpips_matching_gpu(estimated_img_batch, reference_img_batch, device, height=32, width=32):
+    # device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     # finding [0, 1] normalized positive and negative images
     positive_estimation = torch.empty((estimated_img_batch.shape[0], 3, height, width))
@@ -205,24 +205,24 @@ def lpips_matching_gpu(estimated_img_batch, reference_img_batch, height=32, widt
 
     return match, is_pos, (mean_lpips / estimated_img_batch.shape[0])
 
-
-def lpips(estimated_img_batch, reference_img_batch, return_matches=True, verbose=False, height=32, width=32):
-    match, is_pos, mean_lpips = lpips_matching(estimated_img_batch, reference_img_batch, verbose=verbose, height=height, width=width)
+# DEPRECATED
+def lpips(estimated_img_batch, reference_img_batch, device, return_matches=True, verbose=False, height=32, width=32):
+    match, is_pos, mean_lpips = lpips_matching(estimated_img_batch, reference_img_batch, device, verbose=verbose, height=height, width=width)
     if return_matches:
         return match, is_pos, mean_lpips
     else:
         return is_pos, mean_lpips
 
 
-def lpips_gpu(estimated_img_batch, reference_img_batch, return_matches=True, height=32, width=32):
-    match, is_pos, mean_lpips = lpips_matching_gpu(estimated_img_batch, reference_img_batch, height=height, width=width)
+def lpips_gpu(estimated_img_batch, reference_img_batch, device, return_matches=True, height=32, width=32):
+    match, is_pos, mean_lpips = lpips_matching_gpu(estimated_img_batch, reference_img_batch, device, height=height, width=width)
     if return_matches:
         return match, is_pos, mean_lpips
     else:
         return is_pos, mean_lpips
     
-def lpips_matching_specific_image_gpu(estimated_img_batch, specific_img, height=32, width=32):
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+def lpips_matching_specific_image_gpu(estimated_img_batch, specific_img, device, height=32, width=32):
+    # device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     # finding [0, 1] normalized positive and negative images
     positive_estimation = torch.empty((estimated_img_batch.shape[0], 3, height, width))

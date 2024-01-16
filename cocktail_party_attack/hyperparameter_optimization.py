@@ -31,9 +31,10 @@ def maximize_psnr(model_config, checkpoint_path, data_type, data_path, batch_siz
             return result_dict
 
     if logger is not None:
-        logger = os.path.join('./hyperparamater_optimization_log', logger)
-        if not os.path.exists(logger):
-            os.makedirs(logger)
+        root_logger_path = './hyperparameter_optimization_log' 
+        if not os.path.exists(root_logger_path):
+            os.makedirs(root_logger_path)
+        logger = os.path.join(root_logger_path, logger)
 
         logging_logger = logging.getLogger()
 
@@ -74,9 +75,10 @@ def minimize_lpips(model_config, checkpoint_path, data_type, data_path, batch_si
             return result_dict
     
     if logger is not None:
-        logger = os.path.join('./hyperparamater_optimization_log', logger)
-        if not os.path.exists(logger):
-            os.makedirs(logger)
+        root_logger_path = './hyperparameter_optimization_log' 
+        if not os.path.exists(root_logger_path):
+            os.makedirs(root_logger_path)
+        logger = os.path.join(root_logger_path, logger)
 
         logging_logger = logging.getLogger()
 
@@ -120,9 +122,10 @@ def minimize_lpips_for_specific_image_with_id(model_config, checkpoint_path, dat
             return result_dict
 
     if logger is not None:
-        logger = os.path.join('./hyperparamater_optimization_log', logger)
-        if not os.path.exists(logger):
-            os.makedirs(logger)
+        root_logger_path = './hyperparameter_optimization_log' 
+        if not os.path.exists(root_logger_path):
+            os.makedirs(root_logger_path)
+        logger = os.path.join(root_logger_path, logger)
 
         logging_logger = logging.getLogger()
 

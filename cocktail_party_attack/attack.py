@@ -225,7 +225,7 @@ def _main_cocktail_party_attack(selected_val_batch_data, whitened_gradient,
         print('############# ATTACK IS FINISHED #############')
     return estimated_img_batch
 
-def _get_metrics(estimated_img_batch, selected_val_batch_data, height, width, return_specific_with_id, result_dict, verbose):
+def _get_metrics(estimated_img_batch, selected_val_batch_data, device, height, width, return_specific_with_id, result_dict, verbose):
     """save metrics in the result dict
 
     Args:
@@ -237,7 +237,7 @@ def _get_metrics(estimated_img_batch, selected_val_batch_data, height, width, re
         result_dict (dict): dict to save metric values
         verbose (bool): flag for verbose
     """
-    lpips_match, lpips_is_positive, mean_lpips = lpips_gpu(estimated_img_batch, selected_val_batch_data, height=height, width=width) # type: ignore
+    lpips_match, lpips_is_positive, mean_lpips = lpips_gpu(estimated_img_batch, selected_val_batch_data, device, height=height, width=width) # type: ignore
     psnr_match, psnr_is_positive, mean_psnr = psnr(estimated_img_batch, selected_val_batch_data, height=height, width=width) # type: ignore
     lpips_key, psnr_key = 'lpips', 'psnr'
     result_dict[lpips_key] = {'matches': lpips_match, 'is_positive': lpips_is_positive, 'mean_lpips': mean_lpips}
@@ -249,6 +249,7 @@ def _get_metrics(estimated_img_batch, selected_val_batch_data, height, width, re
     if return_specific_with_id is not None:
         best_estimation_id, pos_estimation, min_lpips_value = lpips_matching_specific_image_gpu(estimated_img_batch,
                                                                                                 selected_val_batch_data[return_specific_with_id],
+                                                                                                device,
                                                                                                 height=height,
                                                                                                 width=width)
         result_dict['lpips_with_id'] = {'best_estimation': best_estimation_id, 'is_positive': pos_estimation,
@@ -279,7 +280,11 @@ def _plot_results(estimated_img_batch, selected_val_batch_data,
     """
     lpips_match = result_dict['lpips']['matches']
     lpips_is_positive = result_dict['lpips']['is_positive']
-    best_estimation_id, pos_estimation = None, None 
+    if return_specific_with_id is not None:
+        best_estimation_id, pos_estimation = result_dict['lpips_with_id']['best_estimation'], result_dict['lpips_with_id']['is_positive']
+    else:
+        best_estimation_id, pos_estimation = None, None
+        
     if plot_shape is not None:
         fig, axes = plt.subplots(*plot_shape)
 
@@ -337,7 +342,6 @@ def _plot_results(estimated_img_batch, selected_val_batch_data,
             plt.clf()
 
     if return_specific_with_id is not None:
-        best_estimation_id, pos_estimation = result_dict['lpips_with_id']['best_estimation'], result_dict['lpips_with_id']['is_positive']
         if plot_shape is not None:
             fig, axes = plt.subplots(1, 2)
             print_estimate = True
@@ -454,7 +458,7 @@ def cocktail_party_attack(model_config, checkpoint_path, data_type, data_path, b
     with torch.no_grad():
         selected_val_batch_data = selected_val_batch_data.detach().to('cpu')
         ################ RETRIEVE METRICS ######################
-        _get_metrics(estimated_img_batch, selected_val_batch_data, height, width, return_specific_with_id, result_dict, verbose)
+        _get_metrics(estimated_img_batch, selected_val_batch_data, device, height, width, return_specific_with_id, result_dict, verbose)
         #########################################################
 
         if save_results is not None:
@@ -480,3 +484,4 @@ def cocktail_party_attack(model_config, checkpoint_path, data_type, data_path, b
                 print('The results are saved under {}'.format(json_path))
 
         return result_dict
+
